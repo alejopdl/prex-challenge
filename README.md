@@ -33,6 +33,106 @@ prex-challenge/
 └── README.md                    # Documentación
 ```
 
+## Documentación
+
+Para más detalles sobre la implementación, requisitos y diseño, consulta los documentos en el directorio `/docs/`.
+
+La evidencia del despliegue en AWS se puede encontrar en el directorio `/evidencia/`.
+
+## Guía de Prueba del Sistema
+
+Esta sección proporciona instrucciones detalladas para que cualquier persona pueda probar completamente el sistema de monitoreo.
+
+### 1. Verificar el Servidor API Desplegado
+
+El servidor API ya está desplegado y funcionando en AWS EC2. Puedes verificar que está activo y consultar datos existentes:
+
+#### Verificar estado del servidor:
+```bash
+curl http://15.228.201.242:5000/health
+```
+Deberías recibir: `{"status":"ok","message":"API server is running"}`
+
+#### Listar archivos de datos almacenados:
+```bash
+curl http://15.228.201.242:5000/list
+```
+Verás una lista de archivos JSON organizados por IP y fecha.
+
+#### Consultar datos específicos:
+```bash
+curl "http://15.228.201.242:5000/query?ip=192.168.100.212"
+```
+Esto mostrará los datos recopilados para la IP especificada.
+
+### 2. Ejecutar el Agente en tu Propia Máquina
+
+Para enviar datos de tu propia máquina al servidor:
+
+#### Preparar el entorno:
+```bash
+# Clonar el repositorio
+git clone https://github.com/alejopdl/prex-challenge.git
+cd prex-challenge
+
+# Crear y activar entorno virtual
+python -m venv venv
+
+# En Linux/Mac
+source venv/bin/activate
+
+# En Windows
+# venv\Scripts\activate
+
+# Instalar dependencias
+pip install -r requirements.txt
+```
+
+#### Ejecutar el agente una sola vez:
+```bash
+python agent/collector.py --once --server http://15.228.201.242:5000
+```
+Esto recopilará datos de tu sistema y los enviará al servidor.
+
+#### Verificar que tus datos llegaron:
+1. Obtén tu dirección IP local (la mayoría de las veces será tu IP privada):
+   - En Linux/Mac: `ifconfig` o `ip addr`
+   - En Windows: `ipconfig`
+
+2. Consulta tus datos en el servidor:
+```bash
+curl "http://15.228.201.242:5000/query?ip=TU_DIRECCIÓN_IP"
+```
+
+### 3. Ejecutar el Servidor API Localmente (Opcional)
+
+Si prefieres probar todo localmente:
+
+```bash
+# En una terminal, inicia el servidor API
+python api_server/app.py
+
+# En otra terminal, ejecuta el agente apuntando a localhost
+python agent/collector.py --once --server http://localhost:5000
+```
+
+### 4. Verificación de Fin a Fin
+
+Para confirmar que todo el sistema funciona correctamente:
+
+1. Ejecuta el agente con la opción de servicio para enviar datos continuamente:
+```bash
+python agent/collector.py --interval 60 --server http://15.228.201.242:5000
+```
+Esto enviará datos cada 60 segundos.
+
+2. En otra terminal, consulta los datos cada minuto para ver las actualizaciones:
+```bash
+watch -n 60 'curl "http://15.228.201.242:5000/query?ip=TU_DIRECCIÓN_IP"'
+```
+
+3. Puedes detener el agente con Ctrl+C cuando hayas terminado la prueba.
+
 ## Documentación Detallada de los Componentes
 
 ### Agente de Recolección
