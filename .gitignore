@@ -1,0 +1,41 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment and virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Log files
+*.log
+
+# Local data files
+data/
+*.json
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# AWS key file
+*.pem
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Docker
+.docker/
