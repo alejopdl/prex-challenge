@@ -25,7 +25,8 @@ prex-challenge/
 │   └── run_api.py               # Servidor API
 │
 ├── data/                        # Directorio de almacenamiento de datos
-├── docs_es/                     # Documentación en español
+├── docs/                        # Documentación en español
+├── evidencia/                   # Evidencia del despliegue en AWS EC2
 ├── tests/                       # Directorio de pruebas
 ├── Dockerfile                   # Configuración Docker para la API
 ├── requirements.txt             # Dependencias del proyecto
@@ -36,17 +37,17 @@ prex-challenge/
 
 ### Agente de Recolección
 
-1. [**collector.py**](collector_doc_es.md) - Módulo encargado de recopilar información del sistema utilizando las bibliotecas psutil, platform y socket. Incluye funciones para obtener información de CPU, procesos, usuarios conectados y detalles del sistema operativo.
+1. [**collector.py**](docs/collector_doc_es.md) - Módulo encargado de recopilar información del sistema utilizando las bibliotecas psutil, platform y socket. Incluye funciones para obtener información de CPU, procesos, usuarios conectados y detalles del sistema operativo.
 
-2. [**sender.py**](sender_doc_es.md) - Módulo que maneja el envío de la información recopilada al servidor API a través de solicitudes HTTP POST. Implementa la clase `APISender` para manejar la comunicación con la API.
+2. [**sender.py**](docs/sender_doc_es.md) - Módulo que maneja el envío de la información recopilada al servidor API a través de solicitudes HTTP POST. Implementa la clase `APISender` para manejar la comunicación con la API.
 
-3. [**run_agent.py**](run_agent_doc_es.md) - Script principal del agente que coordina la recolección y el envío de datos. Puede ejecutarse en modo único o programado a intervalos regulares.
+3. [**run_agent.py**](docs/run_agent_doc_es.md) - Script principal del agente que coordina la recolección y el envío de datos. Puede ejecutarse en modo único o programado a intervalos regulares.
 
 ### Servidor API
 
-1. [**app.py**](app_doc_es.md) - Aplicación Flask que implementa los endpoints para recibir y consultar datos. Incluye rutas para subir datos, consultar por IP y fecha, listar archivos disponibles y verificar el estado del servidor.
+1. [**app.py**](docs/app_doc_es.md) - Aplicación Flask que implementa los endpoints para recibir y consultar datos. Incluye rutas para subir datos, consultar por IP y fecha, listar archivos disponibles y verificar el estado del servidor.
 
-2. [**storage.py**](storage_doc_es.md) - Módulo que maneja el almacenamiento y recuperación de datos en archivos JSON. Implementa la clase `JSONStorage` para gestionar operaciones de archivo.
+2. [**storage.py**](docs/storage_doc_es.md) - Módulo que maneja el almacenamiento y recuperación de datos en archivos JSON. Implementa la clase `JSONStorage` para gestionar operaciones de archivo.
 
 3. **run_api.py** - Script para iniciar el servidor API con opciones configurables como host y puerto.
 
@@ -129,8 +130,59 @@ docker run -p 5000:5000 -v $(pwd)/data:/app/data prex-challenge-api
 
 ## Consideraciones de Seguridad
 
-- La API no implementa autenticación. Para producción, considere agregar autenticación.
-- Los datos se almacenan en archivos JSON. Para entornos sensibles, considere cifrado o una base de datos adecuada.
+### Riesgos Identificados
+
+1. **Autenticación**: La API actualmente no implementa ningún mecanismo de autenticación o autorización, lo que permite que cualquier cliente con conocimiento de la IP del servidor pueda subir o consultar datos.
+
+2. **Superficie de Exposición**: El puerto 5000 está abierto públicamente en la configuración del grupo de seguridad de AWS EC2, lo que aumenta la superficie de ataque potencial.
+
+3. **Almacenamiento sin Cifrado**: Los datos se almacenan en archivos JSON de texto plano sin cifrar, lo que podría comprometer información sensible si se accede al sistema de archivos.
+
+4. **Protección contra DoS**: No hay implementados límites de tasa para las solicitudes, lo que podría hacer al sistema vulnerable a ataques de denegación de servicio.
+
+5. **Validación de Entrada**: La validación básica de entrada podría ser mejorada para prevenir inyecciones o desbordamientos de búfer.
+
+### Mejoras Recomendadas para Entornos de Producción
+
+1. **Implementar Autenticación**:
+   ```python
+   # Ejemplo de middleware para autenticación con token API
+   @app.before_request
+   def authenticate():
+       if request.endpoint not in ['health', 'index']:
+           api_key = request.headers.get('X-Api-Key')
+           if not api_key or api_key != config.API_KEY:
+               return jsonify({'error': 'Unauthorized'}), 401
+   ```
+
+2. **Restricción de Acceso por IP**:
+   - Modificar el grupo de seguridad para permitir conexiones solo desde IPs conocidas
+   - Implementar listas blancas de IPs en la aplicación
+
+3. **Implementar HTTPS** para cifrar datos en tránsito
+
+4. **Cifrado de Datos en Reposo**:
+   - Cifrar los archivos JSON o utilizar una base de datos con capacidades de cifrado
+
+5. **Limitar Tamaño de Carga y Tasa de Solicitudes**:
+   ```python
+   # Configurar límites de tasa con Flask-Limiter
+   from flask_limiter import Limiter
+   limiter = Limiter(app, key_func=get_remote_address)
+   
+   @app.route('/upload', methods=['POST'])
+   @limiter.limit("10 per minute")
+   def upload():
+       # existing code
+   ```
+
+6. **Registro y Monitoreo**:
+   - Implementar logging detallado de seguridad
+   - Configurar alertas para actividades sospechosas
+
+## Notas de Implementación
+
+- Este proyecto está diseñado como una prueba de concepto y puede requerir las mejoras de seguridad mencionadas para un despliegue en producción.
 - Cierre el puerto 5000 cuando no sea necesario para minimizar la exposición.
 
 ## Mejoras Futuras Potenciales

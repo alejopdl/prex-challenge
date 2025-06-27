@@ -2,7 +2,7 @@
 # Deployment script for Prex Challenge server monitoring system
 
 # Variables - EC2 instance details
-EC2_HOST="56.124.17.51" # Public IP of the EC2 instance
+EC2_HOST="15.228.201.242" # Public IP of the EC2 instance
 KEY_PATH="./prex-challenge-key.pem"
 REMOTE_USER="ubuntu" # Default user for Ubuntu AMIs
 REMOTE_DIR="/home/ubuntu/prex-challenge"
